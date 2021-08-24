@@ -91,6 +91,7 @@
 
 #define WPS_ATTR_REQ_TYPE 0x103a
 #define WPS_REQ_TYPE_ENROLLEE 0x01
+#define SCAN_WAKE_LOCK_MARGIN_MS 500
 
 #if defined(USE_INITIAL_2G_SCAN) || defined(USE_INITIAL_SHORT_DWELL_TIME)
 #define FIRST_SCAN_ACTIVE_DWELL_TIME_MS 40
@@ -647,6 +648,13 @@ wl_escan_handler(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 		}
 	}
 	else if (status == WLC_E_STATUS_SUCCESS) {
+		dhd_pub_t *dhdp = (dhd_pub_t *)(cfg->pub);
+		if ((dhdp->dhd_induce_error == DHD_INDUCE_SCAN_TIMEOUT) ||
+			(dhdp->dhd_induce_error == DHD_INDUCE_SCAN_TIMEOUT_SCHED_ERROR)) {
+			WL_ERR(("%s: Skip escan complete to induce scantimeout\n", __FUNCTION__));
+			err = BCME_ERROR;
+			goto exit;
+		}
 		cfg->escan_info.escan_state = WL_ESCAN_STATE_IDLE;
 		wl_escan_print_sync_id(status, cfg->escan_info.cur_sync_id,
 			escan_result->sync_id);
@@ -771,8 +779,7 @@ exit:
 	return err;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)) && \
-	defined(SUPPORT_RANDOM_MAC_SCAN)
+#if defined(SUPPORT_RANDOM_MAC_SCAN)
 static const u8 *
 wl_retrieve_wps_attribute(const u8 *buf, u16 element_id)
 {
@@ -823,7 +830,7 @@ wl_is_wps_enrollee_active(struct net_device *ndev, const u8 *ie_ptr, u16 len)
 
 	return false;
 }
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0) && defined(SUPPORT_RANDOM_MAC_SCAN) */
+#endif /* SUPPORT_RANDOM_MAC_SCAN */
 
 /* Find listen channel */
 static s32 wl_find_listen_channel(struct bcm_cfg80211 *cfg,
@@ -1186,15 +1193,22 @@ wl_run_escan(struct bcm_cfg80211 *cfg, struct net_device *ndev,
 	} else {
 		params_size = (WL_SCAN_PARAMS_FIXED_SIZE + OFFSETOF(wl_escan_params_t, params));
 	}
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)) && \
-	defined(SUPPORT_RANDOM_MAC_SCAN)
+#if defined(SUPPORT_RANDOM_MAC_SCAN)
 	if (request) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0))
 		bool randmac_enable = (request->flags & NL80211_SCAN_FLAG_RANDOM_ADDR);
+#else /* old kernel version */
+		bool randmac_enable = TRUE;
+#endif // endif
 		if (wl_is_wps_enrollee_active(ndev, request->ie, request->ie_len)) {
 			randmac_enable = false;
 		}
-		err = wl_rand_mac_ctrl(ndev, cfg, randmac_enable);
+
+		if (randmac_enable) {
+			err = wl_cfg80211_random_mac_enable(ndev, cfg, randmac_enable);
+		} else {
+			err = wl_cfg80211_random_mac_disable(ndev);
+		}
 
 		if (err < 0) {
 			if (err == BCME_UNSUPPORTED) {
@@ -1209,7 +1223,7 @@ wl_run_escan(struct bcm_cfg80211 *cfg, struct net_device *ndev,
 			}
 		}
 	}
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0) && defined(SUPPORT_RANDOM_MAC_SCAN) */
+#endif /* SUPPORT_RANDOM_MAC_SCAN */
 
 	if (!cfg->p2p_supported || !p2p_scan(cfg)) {
 		/* LEGACY SCAN TRIGGER */
@@ -1835,15 +1849,16 @@ __wl_cfg80211_scan(struct wiphy *wiphy, struct net_device *ndev,
 		ssids = this_ssid;
 	}
 
-	if (request && cfg->p2p_supported) {
-		WL_TRACE_HW4(("START SCAN\n"));
-		DHD_OS_SCAN_WAKE_LOCK_TIMEOUT((dhd_pub_t *)(cfg->pub),
-			SCAN_WAKE_LOCK_TIMEOUT);
-		DHD_DISABLE_RUNTIME_PM((dhd_pub_t *)(cfg->pub));
-	}
+	WL_TRACE_HW4(("START SCAN\n"));
+	DHD_OS_SCAN_WAKE_LOCK_TIMEOUT((dhd_pub_t *)(cfg->pub),
+		wl_get_scan_timeout_val(cfg) + SCAN_WAKE_LOCK_MARGIN_MS);
+	DHD_DISABLE_RUNTIME_PM((dhd_pub_t *)(cfg->pub));
 
 	if (cfg->p2p_supported) {
 		if (request && p2p_on(cfg) && p2p_scan(cfg)) {
+#if defined(DHD_RANDOM_MAC_SCAN)
+			wl_cfg80211_dhd_driven_random_mac_disable(ndev);
+#endif /* DHD_RANDOM_MAC_SCAN */
 
 			/* find my listen channel */
 			cfg->afx_hdl->my_listen_chan =
@@ -1888,12 +1903,14 @@ scan_out:
 		if (scanbusy_err == BCME_NOTREADY) {
 			/* In case of bus failures avoid ioctl calls */
 			DHD_OS_SCAN_WAKE_UNLOCK((dhd_pub_t *)(cfg->pub));
+			DHD_ENABLE_RUNTIME_PM((dhd_pub_t *)(cfg->pub));
 			return -ENODEV;
 		}
 		err = scanbusy_err;
 	}
 
 	DHD_OS_SCAN_WAKE_UNLOCK((dhd_pub_t *)(cfg->pub));
+	DHD_ENABLE_RUNTIME_PM((dhd_pub_t *)(cfg->pub));
 	return err;
 }
 
@@ -2078,13 +2095,9 @@ s32 wl_notify_escan_complete(struct bcm_cfg80211 *cfg,
 		err = BCME_ERROR;
 		goto out;
 	}
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)) && \
-	defined(SUPPORT_RANDOM_MAC_SCAN) && !defined(WL_USE_RANDOMIZED_SCAN)
-		/* Disable scanmac if enabled */
-		if (cfg->scanmac_enabled) {
-			wl_cfg80211_scan_mac_disable(ndev);
-		}
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0) && defined(SUPPORT_RANDOM_MAC_SCAN) */
+#if defined(SUPPORT_RANDOM_MAC_SCAN)
+	wl_cfg80211_random_mac_disable(ndev);
+#endif /* SUPPORT_RANDOM_MAC_SCAN */
 
 	if (cfg->scan_request) {
 		dev = bcmcfg_to_prmry_ndev(cfg);
@@ -2482,200 +2495,84 @@ void wl_notify_scan_done(struct bcm_cfg80211 *cfg, bool aborted)
 int
 wl_cfg80211_set_random_mac(struct net_device *dev, bool enable)
 {
-	struct bcm_cfg80211 *cfg = wl_get_cfg(dev);
-	int ret;
-
-	if (cfg->random_mac_enabled == enable) {
-		WL_ERR(("Random MAC already %s\n", enable ? "Enabled" : "Disabled"));
-		return BCME_OK;
-	}
-
-	if (enable) {
-		ret = wl_cfg80211_random_mac_enable(dev);
-	} else {
-		ret = wl_cfg80211_random_mac_disable(dev);
-	}
-
-	if (!ret) {
-		cfg->random_mac_enabled = enable;
-	}
-
-	return ret;
+	return BCME_OK;
 }
 
+#if defined(DHD_RANDOM_MAC_SCAN)
+#define RANDOM_MAC_ADDR_MUTICAST_BIT 0x01
+#define RANDOM_MAC_ADDR_LOCALLY_ADMIN_BIT 0x02
+
 int
-wl_cfg80211_random_mac_enable(struct net_device *dev)
+wl_cfg80211_dhd_driven_random_mac_enable(struct net_device *dev)
 {
-	u8 random_mac[ETH_ALEN] = {0, };
-	u8 rand_bytes[3] = {0, };
+	u8 random_mac_addr[ETHER_ADDR_LEN] = {0, };
 	s32 err = BCME_ERROR;
 	struct bcm_cfg80211 *cfg = wl_get_cfg(dev);
-#if !defined(LEGACY_RANDOM_MAC)
-	uint8 buffer[WLC_IOCTL_SMLEN] = {0, };
-	wl_scanmac_t *sm = NULL;
-	int len = 0;
-	wl_scanmac_enable_t *sm_enable = NULL;
-	wl_scanmac_config_t *sm_config = NULL;
-#endif /* !LEGACY_RANDOM_MAC */
 
 	if (wl_get_drv_status_all(cfg, CONNECTED) || wl_get_drv_status_all(cfg, CONNECTING) ||
-	    wl_get_drv_status_all(cfg, AP_CREATED) || wl_get_drv_status_all(cfg, AP_CREATING)) {
-		WL_ERR(("fail to Set random mac, current state is wrong\n"));
+		wl_get_drv_status_all(cfg, AP_CREATED) || wl_get_drv_status_all(cfg, AP_CREATING)) {
+		WL_ERR(("Skip to set random mac by current status\n"));
 		return err;
 	}
 
-	(void)memcpy_s(random_mac, ETH_ALEN, bcmcfg_to_prmry_ndev(cfg)->dev_addr, ETH_ALEN);
-	get_random_bytes(&rand_bytes, sizeof(rand_bytes));
+	/* Generate 6 bytes random address */
+	get_random_bytes(&random_mac_addr, sizeof(random_mac_addr));
 
-	if (rand_bytes[2] == 0x0 || rand_bytes[2] == 0xff) {
-		rand_bytes[2] = 0xf0;
+	/* Clear Multicast bit */
+	random_mac_addr[0] &= ~RANDOM_MAC_ADDR_MUTICAST_BIT;
+
+	/* Set locally administered address bit */
+	random_mac_addr[0] |= RANDOM_MAC_ADDR_LOCALLY_ADMIN_BIT;
+
+	/* Modify last mac address if 0x00 or 0xff */
+	if (random_mac_addr[5] == 0x0 || random_mac_addr[5] == 0xff) {
+		random_mac_addr[5] = 0xf0;
 	}
-
-#if defined(LEGACY_RANDOM_MAC)
-	/* of the six bytes of random_mac the bytes 3, 4, 5 are copied with contents of rand_bytes
-	* So while copying 3 bytes of content no overflow would be seen. Hence returning void.
-	*/
-	(void)memcpy_s(&random_mac[3], (sizeof(u8) * 3), rand_bytes, sizeof(rand_bytes));
-
 	err = wldev_iovar_setbuf_bsscfg(bcmcfg_to_prmry_ndev(cfg), "cur_etheraddr",
-		random_mac, ETH_ALEN, cfg->ioctl_buf, WLC_IOCTL_SMLEN, 0, &cfg->ioctl_buf_sync);
+		random_mac_addr, ETHER_ADDR_LEN, cfg->ioctl_buf, WLC_IOCTL_SMLEN,
+		0, &cfg->ioctl_buf_sync);
 
 	if (err != BCME_OK) {
-		WL_ERR(("failed to set random generate MAC address\n"));
-	} else {
-		WL_ERR(("set mac " MACDBG " to " MACDBG "\n",
+		WL_ERR(("Failed to set random generate MAC address " MACDBG " to " MACDBG "\n",
 			MAC2STRDBG((const u8 *)bcmcfg_to_prmry_ndev(cfg)->dev_addr),
-			MAC2STRDBG((const u8 *)&random_mac)));
-		WL_ERR(("random MAC enable done"));
+			MAC2STRDBG((const u8 *)&random_mac_addr)));
+	} else {
+		cfg->random_mac_running = TRUE;
+		WL_INFORM(("Set random mac " MACDBG " to " MACDBG "\n",
+			MAC2STRDBG((const u8 *)bcmcfg_to_prmry_ndev(cfg)->dev_addr),
+			MAC2STRDBG((const u8 *)&random_mac_addr)));
 	}
-#else
-	/* Enable scan mac */
-	sm = (wl_scanmac_t *)buffer;
-	sm_enable = (wl_scanmac_enable_t *)sm->data;
-	sm->len = sizeof(*sm_enable);
-	sm_enable->enable = 1;
-	len = OFFSETOF(wl_scanmac_t, data) + sm->len;
-	sm->subcmd_id = WL_SCANMAC_SUBCMD_ENABLE;
-
-	err = wldev_iovar_setbuf_bsscfg(dev, "scanmac",
-		sm, len, cfg->ioctl_buf, WLC_IOCTL_SMLEN, 0, &cfg->ioctl_buf_sync);
-
-	/* For older chip which which does not have scanmac support can still use
-	 * cur_etheraddr to set the randmac. rand_mask and rand_mac comes from upper
-	 * cfg80211 layer. If rand_mask and rand_mac is not passed then fallback
-	 * to default cur_etheraddr and default mask.
-	 */
-	if (err == BCME_UNSUPPORTED) {
-		/* In case of host based legacy randomization, random address is
-		 * generated by mixing 3 bytes of cur_etheraddr and 3 bytes of
-		 * random bytes generated.In that case rand_mask is nothing but
-		 * random bytes.
-		 */
-		(void)memcpy_s(&random_mac[3], (sizeof(u8) * 3), rand_bytes, sizeof(rand_bytes));
-		err = wldev_iovar_setbuf_bsscfg(bcmcfg_to_prmry_ndev(cfg), "cur_etheraddr",
-				random_mac, ETH_ALEN, cfg->ioctl_buf,
-				WLC_IOCTL_SMLEN, 0, &cfg->ioctl_buf_sync);
-		if (err != BCME_OK) {
-			WL_ERR(("failed to set random generate MAC address\n"));
-		} else {
-			WL_ERR(("set mac " MACDBG " to " MACDBG "\n",
-				MAC2STRDBG((const u8 *)bcmcfg_to_prmry_ndev(cfg)->dev_addr),
-				MAC2STRDBG((const u8 *)&random_mac)));
-			WL_ERR(("random MAC enable done using legacy randmac"));
-		}
-	} else if (err == BCME_OK) {
-		/* Configure scanmac */
-		(void)memset_s(buffer, sizeof(buffer), 0x0, sizeof(buffer));
-		sm_config = (wl_scanmac_config_t *)sm->data;
-		sm->len = sizeof(*sm_config);
-		sm->subcmd_id = WL_SCANMAC_SUBCMD_CONFIG;
-		sm_config->scan_bitmap = WL_SCANMAC_SCAN_UNASSOC;
-
-		/* Set randomize mac address recv from upper layer */
-		(void)memcpy_s(&sm_config->mac.octet, ETH_ALEN, random_mac, ETH_ALEN);
-
-		/* Set randomize mask recv from upper layer */
-
-		/* Currently in samsung case, upper layer does not provide
-		 * variable randmask and its using fixed 3 byte randomization
-		 */
-		(void)memset_s(&sm_config->random_mask.octet, ETH_ALEN, 0x0, ETH_ALEN);
-		/* Memsetting the remaining octets 3, 4, 5. So remaining dest length is 3 */
-		(void)memset_s(&sm_config->random_mask.octet[3], 3, 0xFF, 3);
-
-		WL_DBG(("recv random mac addr " MACDBG  " recv rand mask" MACDBG "\n",
-			MAC2STRDBG((const u8 *)&sm_config->mac.octet),
-			MAC2STRDBG((const u8 *)&sm_config->random_mask)));
-
-		len = OFFSETOF(wl_scanmac_t, data) + sm->len;
-		err = wldev_iovar_setbuf_bsscfg(dev, "scanmac",
-			sm, len, cfg->ioctl_buf, WLC_IOCTL_SMLEN, 0, &cfg->ioctl_buf_sync);
-
-		if (err != BCME_OK) {
-			WL_ERR(("failed scanmac configuration\n"));
-
-			/* Disable scan mac for clean-up */
-			wl_cfg80211_random_mac_disable(dev);
-			return err;
-		}
-		WL_DBG(("random MAC enable done using scanmac"));
-	} else  {
-		WL_ERR(("failed to enable scanmac, err=%d\n", err));
-	}
-#endif /* LEGACY_RANDOM_MAC */
-
 	return err;
 }
 
 int
-wl_cfg80211_random_mac_disable(struct net_device *dev)
+wl_cfg80211_dhd_driven_random_mac_disable(struct net_device *dev)
 {
 	s32 err = BCME_ERROR;
 	struct bcm_cfg80211 *cfg = wl_get_cfg(dev);
-#if !defined(LEGACY_RANDOM_MAC)
-	uint8 buffer[WLC_IOCTL_SMLEN] = {0, };
-	wl_scanmac_t *sm = NULL;
-	int len = 0;
-	wl_scanmac_enable_t *sm_enable = NULL;
-#endif /* !LEGACY_RANDOM_MAC */
 
-#if defined(LEGACY_RANDOM_MAC)
-	WL_ERR(("set original mac " MACDBG "\n",
-		MAC2STRDBG((const u8 *)bcmcfg_to_prmry_ndev(cfg)->dev_addr)));
+	if (cfg->random_mac_running) {
+		WL_INFORM(("Restore to original MAC address " MACDBG "\n",
+			MAC2STRDBG((const u8 *)bcmcfg_to_prmry_ndev(cfg)->dev_addr)));
 
-	err = wldev_iovar_setbuf_bsscfg(bcmcfg_to_prmry_ndev(cfg), "cur_etheraddr",
-		bcmcfg_to_prmry_ndev(cfg)->dev_addr, ETH_ALEN,
-		cfg->ioctl_buf, WLC_IOCTL_SMLEN, 0, &cfg->ioctl_buf_sync);
+		err = wldev_iovar_setbuf_bsscfg(bcmcfg_to_prmry_ndev(cfg), "cur_etheraddr",
+			bcmcfg_to_prmry_ndev(cfg)->dev_addr, ETHER_ADDR_LEN,
+			cfg->ioctl_buf, WLC_IOCTL_SMLEN, 0, &cfg->ioctl_buf_sync);
 
-	if (err != BCME_OK) {
-		WL_ERR(("failed to set original MAC address\n"));
+		if (err != BCME_OK) {
+			WL_ERR(("Failed to restore original MAC address\n"));
+		} else {
+			cfg->random_mac_running = FALSE;
+			WL_ERR(("Random MAC disable done\n"));
+		}
 	} else {
-		WL_ERR(("legacy random MAC disable done \n"));
+		/* Already randmac mac address disabled */
+		err = BCME_OK;
 	}
-#else
-	sm = (wl_scanmac_t *)buffer;
-	sm_enable = (wl_scanmac_enable_t *)sm->data;
-	sm->len = sizeof(*sm_enable);
-	/* Disable scanmac */
-	sm_enable->enable = 0;
-	len = OFFSETOF(wl_scanmac_t, data) + sm->len;
-
-	sm->subcmd_id = WL_SCANMAC_SUBCMD_ENABLE;
-
-	err = wldev_iovar_setbuf_bsscfg(dev, "scanmac",
-		sm, len, cfg->ioctl_buf, WLC_IOCTL_SMLEN, 0, &cfg->ioctl_buf_sync);
-
-	if (err != BCME_OK) {
-		WL_ERR(("failed to disable scanmac, err=%d\n", err));
-		return err;
-	}
-	/* Clear scanmac enabled status */
-	cfg->scanmac_enabled = 0;
-	WL_DBG(("random MAC disable done\n"));
-#endif /* LEGACY_RANDOM_MAC */
-
 	return err;
 }
+
+#endif /* DHD_RANDOM_MAC_SCAN */
 
 /*
  * This is new interface for mac randomization. It takes randmac and randmask
@@ -2772,7 +2669,7 @@ int wl_cfg80211_scan_mac_enable(struct net_device *dev, uint8 *rand_mac, uint8 *
 			WL_ERR(("failed scanmac configuration\n"));
 
 			/* Disable scan mac for clean-up */
-			wl_cfg80211_random_mac_disable(dev);
+			wl_cfg80211_scan_mac_disable(dev);
 			return err;
 		}
 		/* Mark scanmac enabled */
@@ -2789,16 +2686,48 @@ int
 wl_cfg80211_scan_mac_disable(struct net_device *dev)
 {
 	s32 err = BCME_ERROR;
+	struct bcm_cfg80211 *cfg = wl_get_cfg(dev);
 
-	err = wl_cfg80211_random_mac_disable(dev);
+	uint8 buffer[WLC_IOCTL_SMLEN] = {0, };
+	wl_scanmac_t *sm = NULL;
+	int len = 0;
+	wl_scanmac_enable_t *sm_enable = NULL;
+
+	sm = (wl_scanmac_t *)buffer;
+	sm_enable = (wl_scanmac_enable_t *)sm->data;
+	sm->len = sizeof(*sm_enable);
+	/* Disable scanmac */
+	sm_enable->enable = 0;
+	len = OFFSETOF(wl_scanmac_t, data) + sm->len;
+
+	sm->subcmd_id = WL_SCANMAC_SUBCMD_ENABLE;
+
+	err = wldev_iovar_setbuf_bsscfg(dev, "scanmac",
+		sm, len, cfg->ioctl_buf, WLC_IOCTL_SMLEN, 0, &cfg->ioctl_buf_sync);
+
+	if (err != BCME_OK) {
+		WL_ERR(("failed to disable scanmac, err=%d\n", err));
+		return err;
+	}
+	/* Clear scanmac enabled status */
+	cfg->scanmac_enabled = 0;
+	WL_DBG(("random MAC disable done\n"));
 
 	return err;
 }
 
 int
-wl_rand_mac_ctrl(struct net_device *dev, struct bcm_cfg80211 *cfg, bool randmac_enable)
+wl_cfg80211_random_mac_enable(struct net_device *dev, struct bcm_cfg80211 *cfg, bool randmac_enable)
 {
 	s32 err = BCME_OK;
+
+#if defined(DHD_RANDOM_MAC_SCAN)
+	if (randmac_enable && !cfg->random_mac_running)
+		wl_cfg80211_dhd_driven_random_mac_enable(dev);
+	else if (!randmac_enable) {
+		wl_cfg80211_dhd_driven_random_mac_disable(dev);
+	}
+#else /* DHD_RANDOM_MAC_SCAN */
 	uint8 randomize_all_bits_mask[ETHER_ADDR_LEN] = {0};
 	/* Use default mask for 46 bit randomization */
 	uint8 random_addr[ETHER_ADDR_LEN] = {0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -2808,7 +2737,24 @@ wl_rand_mac_ctrl(struct net_device *dev, struct bcm_cfg80211 *cfg, bool randmac_
 	} else if (!randmac_enable) {
 		err = wl_cfg80211_scan_mac_disable(dev);
 	}
+#endif /* DHD_RANDOM_MAC_SCAN */
 
+	return err;
+}
+
+int
+wl_cfg80211_random_mac_disable(struct net_device *dev)
+{
+	s32 err = BCME_OK;
+#if defined(DHD_RANDOM_MAC_SCAN)
+	err = wl_cfg80211_dhd_driven_random_mac_disable(dev);
+#else
+	struct bcm_cfg80211 *cfg = wl_get_cfg(dev);
+	/* Disable scanmac if enabled */
+	if (cfg->scanmac_enabled) {
+		err = wl_cfg80211_scan_mac_disable(dev);
+	}
+#endif // endif
 	return err;
 }
 
@@ -3124,13 +3070,16 @@ static void wl_scan_timeout(unsigned long data)
 	if (dhd_query_bus_erros(dhdp)) {
 		return;
 	}
+
+	if (dhdp->memdump_enabled) {
+		dhdp->hang_reason = HANG_REASON_SCAN_TIMEOUT;
+	}
+
 #if defined(DHD_KERNEL_SCHED_DEBUG) && defined(DHD_FW_COREDUMP)
-	if (dhdp->memdump_enabled == DUMP_MEMFILE_BUGON &&
-		((cfg->scan_deq_time < cfg->scan_enq_time) ||
-		dhd_bus_query_dpc_sched_errors(dhdp))) {
+	if ((cfg->scan_deq_time < cfg->scan_enq_time) ||
+		dhd_bus_query_dpc_sched_errors(dhdp) ||
+		(dhdp->dhd_induce_error == DHD_INDUCE_SCAN_TIMEOUT_SCHED_ERROR)) {
 		WL_ERR(("****SCAN event timeout due to scheduling problem\n"));
-		/* change g_assert_type to trigger Kernel panic */
-		g_assert_type = 2;
 #ifdef RTT_SUPPORT
 		rtt_status = GET_RTTSTATE(dhdp);
 #endif /* RTT_SUPPORT */
@@ -3162,9 +3111,16 @@ static void wl_scan_timeout(unsigned long data)
 			mutex_is_locked(&(rtt_status)->geofence_mutex)));
 #endif /* WL_NAN */
 #endif /* RTT_SUPPORT */
+		if (dhdp->memdump_enabled == DUMP_MEMFILE_BUGON) {
+			/* change g_assert_type to trigger Kernel panic */
+			g_assert_type = 2;
+			/* use ASSERT() to trigger panic */
+			ASSERT(0);
+		}
 
-		/* use ASSERT() to trigger panic */
-		ASSERT(0);
+		if (dhdp->memdump_enabled) {
+			dhdp->hang_reason = HANG_REASON_SCAN_TIMEOUT_SCHED_ERROR;
+		}
 	}
 #endif /* DHD_KERNEL_SCHED_DEBUG && DHD_FW_COREDUMP */
 	dhd_bus_intr_count_dump(dhdp);
@@ -3193,11 +3149,21 @@ static void wl_scan_timeout(unsigned long data)
 	WL_ERR(("timer expired\n"));
 	dhdp->scan_timeout_occurred = TRUE;
 #ifdef BCMPCIE
-	(void)dhd_pcie_dump_int_regs(dhdp);
+	if (!dhd_pcie_dump_int_regs(dhdp)) {
+		WL_ERR(("%s : PCIe link might be down\n", __FUNCTION__));
+		dhd_bus_set_linkdown(dhdp, TRUE);
+		dhdp->hang_reason = HANG_REASON_PCIE_LINK_DOWN_EP_DETECT;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27))
+		dhd_os_send_hang_message(dhdp);
+#else
+		WL_ERR(("%s: HANG event is unsupported\n", __FUNCTION__));
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27) && OEM_ANDROID */
+	}
+
 	dhd_pcie_dump_rc_conf_space_cap(dhdp);
 #endif /* BCMPCIE */
 #ifdef DHD_FW_COREDUMP
-	if (dhdp->memdump_enabled) {
+	if (!dhd_bus_get_linkdown(dhdp) && dhdp->memdump_enabled) {
 		dhdp->memdump_type = DUMP_TYPE_SCAN_TIMEOUT;
 		dhd_bus_mem_dump(dhdp);
 	}
@@ -3205,7 +3171,9 @@ static void wl_scan_timeout(unsigned long data)
 	 * For the memdump sanity, blocking bus transactions for a while
 	 * Keeping it TRUE causes the sequential private cmd error
 	 */
-	dhdp->scan_timeout_occurred = FALSE;
+	if (!dhdp->memdump_enabled) {
+		dhdp->scan_timeout_occurred = FALSE;
+	}
 #endif /* DHD_FW_COREDUMP */
 	msg.event_type = hton32(WLC_E_ESCAN_RESULT);
 	msg.status = hton32(WLC_E_STATUS_TIMEOUT);
@@ -3215,6 +3183,18 @@ static void wl_scan_timeout(unsigned long data)
 	if (!wl_scan_timeout_dbg_enabled)
 		wl_scan_timeout_dbg_set();
 #endif /* CUSTOMER_HW4_DEBUG */
+
+	DHD_ENABLE_RUNTIME_PM(dhdp);
+
+#if defined(DHD_FW_COREDUMP)
+	if (dhdp->memdump_enabled) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+		dhd_os_send_hang_message(dhdp);
+#else
+		WL_ERR(("%s: HANG event is unsupported\n", __FUNCTION__));
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27) && OEM_ANDROID */
+	}
+#endif /* DHD_FW_COREDUMP */
 }
 
 s32 wl_init_scan(struct bcm_cfg80211 *cfg)
