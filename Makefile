@@ -1,6 +1,6 @@
 VERSION = 4
 PATCHLEVEL = 9
-SUBLEVEL = 237
+SUBLEVEL = 250
 EXTRAVERSION =
 NAME = Roaring Lionus
 
@@ -388,9 +388,18 @@ LINUXINCLUDE    := \
 LINUXINCLUDE	+= $(filter-out $(LINUXINCLUDE),$(USERINCLUDE))
 
 KBUILD_AFLAGS   := -D__ASSEMBLY__
+###KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+###		   -fno-strict-aliasing -fno-common -Wno-unused-value -fshort-wchar \
+###		   -Werror-implicit-function-declaration \
+###		   -Wno-format-security -Wno-array-bounds -Wno-unused-variable -Wno-unused-function \
+###		   -fmodulo-sched -fmodulo-sched-allow-regmoves -fno-tree-vectorize -ffast-math \
+###		   -funswitch-loops -fpredictive-commoning -fgcse-after-reload \
+###		   -fno-aggressive-loop-optimizations \
+###		   -fno-delete-null-pointer-checks -Wno-maybe-uninitialized \
+###		   -std=gnu89
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common -Wno-unused-value -fshort-wchar \
-		   -Werror-implicit-function-declaration \
+		   -Wno-implicit-function-declaration \
 		   -Wno-format-security -Wno-array-bounds -Wno-unused-variable -Wno-unused-function \
 		   -fmodulo-sched -fmodulo-sched-allow-regmoves -fno-tree-vectorize -ffast-math \
 		   -funswitch-loops -fpredictive-commoning -fgcse-after-reload \
