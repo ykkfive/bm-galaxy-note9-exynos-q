@@ -2853,12 +2853,19 @@ int __test_set_page_writeback(struct page *page, bool keep_write)
 	} else {
 		ret = TestSetPageWriteback(page);
 	}
+       /*
+        * NOTE: Page might be free now! Writeback doesn't hold a page
+        * reference on its own, it relies on truncation to wait for
+        * the clearing of PG_writeback. The below can only access
+        * page state that is static across allocation cycles.
+        */
 	if (!ret) {
-		mem_cgroup_inc_page_stat(page, MEM_CGROUP_STAT_WRITEBACK);
+                __mem_cgroup_update_page_stat(page, memcg,
+                                              MEM_CGROUP_STAT_WRITEBACK, -1);
 		inc_node_page_state(page, NR_WRITEBACK);
 		inc_zone_page_state(page, NR_ZONE_WRITE_PENDING);
 	}
-	unlock_page_memcg(page);
+	__unlock_page_memcg(memcg);
 	return ret;
 
 }
