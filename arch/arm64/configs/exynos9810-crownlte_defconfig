@@ -3,7 +3,7 @@
 # Linux/arm64 4.9.217 Kernel Configuration
 #
 
-CONFIG_LOCALVERSION=".BeastMode.v2.11b"
+CONFIG_LOCALVERSION=".BeastMode.v2.11c"
 
 
 

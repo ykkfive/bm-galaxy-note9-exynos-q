@@ -123,7 +123,7 @@ out:
  */
 static int TSS_authhmac(unsigned char *digest, const unsigned char *key,
 			unsigned int keylen, unsigned char *h1,
-			unsigned char *h2, unsigned int h3, ...)
+			unsigned char *h2, unsigned char h3, ...)
 {
 	unsigned char paramdigest[SHA1_DIGEST_SIZE];
 	struct sdesc *sdesc;
@@ -139,7 +139,7 @@ static int TSS_authhmac(unsigned char *digest, const unsigned char *key,
 		return PTR_ERR(sdesc);
 	}
 
-	c = !!h3;
+	c = h3;
 	ret = crypto_shash_init(&sdesc->shash);
 	if (ret < 0)
 		goto out;
@@ -1139,12 +1139,12 @@ out:
 static long trusted_read(const struct key *key, char __user *buffer,
 			 size_t buflen)
 {
-	const struct trusted_key_payload *p;
+	struct trusted_key_payload *p;
 	char *ascii_buf;
 	char *bufp;
 	int i;
 
-	p = dereference_key_locked(key);
+	p = rcu_dereference_key(key);
 	if (!p)
 		return -EINVAL;
 
