@@ -1144,7 +1144,7 @@ static long trusted_read(const struct key *key, char __user *buffer,
 	char *bufp;
 	int i;
 
-	p = rcu_dereference_key(key);
+	p = dereference_key_locked(key);
 	if (!p)
 		return -EINVAL;
 

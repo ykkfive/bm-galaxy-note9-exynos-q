@@ -3414,9 +3414,6 @@ static bool finished_loading(const char *name)
 	struct module *mod;
 	bool ret;
 
-	/* Delay uevent until module has finished its init routine */
-	kobject_uevent(&mod->mkobj.kobj, KOBJ_ADD);
-
 	/*
 	 * The module_mutex should not be a heavily contended lock;
 	 * if we get the occasional sleep here, we'll go an extra iteration

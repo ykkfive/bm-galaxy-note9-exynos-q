@@ -10609,7 +10609,7 @@
 				};
 
 				big-switch-on {
-					temperature = <0xd6d8>;
+					temperature = <0xea60>;
 					hysteresis = <0x7d0>;
 					type = "active";
 					linux,phandle = <0x2f3>;

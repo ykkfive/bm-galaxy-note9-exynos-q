@@ -218,7 +218,7 @@ static inline void fscrypt_set_encrypted_dentry(struct dentry *dentry)
 {
 #if IS_ENABLED(CONFIG_FS_ENCRYPTION)
 	spin_lock(&dentry->d_lock);
-	dentry->d_flags |= DCACHE_ENCRYPTED_WITH_KEY;
+	dentry->d_flags |= DCACHE_ENCRYPTED_NAME;
 	spin_unlock(&dentry->d_lock);
 #endif
 }

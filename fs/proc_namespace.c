@@ -234,11 +234,6 @@ static int show_vfsstat(struct seq_file *m, struct vfsmount *mnt)
 			goto out;
 	} else {
 		if (r->mnt_devname) {
-
-		err = skip_magisk_entry(r->mnt_devname);
-		if (err)
-			goto out;
-
 			seq_puts(m, "device ");
 			mangle(m, r->mnt_devname);
 		} else
