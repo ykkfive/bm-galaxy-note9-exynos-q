@@ -743,6 +743,13 @@ void sec_bootstat_get_cpuinfo(int *freq, int *online)
 /*********************************************************************
  *                  INITIALIZE EXYNOS CPUFREQ DRIVER                 *
  *********************************************************************/
+
+/* Undervolt */
+static int cpu_freq_ceiling_L1 = 1000000;
+static int cpu_freq_ceiling_L2 = 2000000;
+static int cpu_undervolt_L1 = 12500;
+static int cpu_undervolt_L2 = 10000;
+
 static void print_domain_info(struct exynos_cpufreq_domain *domain)
 {
 	int i;
@@ -833,6 +840,19 @@ static __init int init_table(struct exynos_cpufreq_domain *domain)
 		else {
 			struct cpumask mask;
 			domain->freq_table[index].frequency = table[index];
+
+//pr_info("CPUFREQ table[%d]: frequency=%d, volt=%d\n", index, table[index], volt_table[index]);
+
+			/* Undervolt */
+			if (domain->freq_table[index].frequency < cpu_freq_ceiling_L1)
+			{
+				volt_table[index] -= cpu_undervolt_L1;
+			}
+			else if (domain->freq_table[index].frequency < cpu_freq_ceiling_L2)
+			{
+				volt_table[index] -= cpu_undervolt_L2;
+			}
+
 			/* Add OPP table to first cpu of domain */
 			dev = get_cpu_device(cpumask_first(&domain->cpus));
 			if (!dev)
@@ -1065,6 +1085,40 @@ static int init_dm(struct exynos_cpufreq_domain *domain,
 	return register_exynos_dm_freq_scaler(domain->dm_type, dm_scaler);
 }
 
+static unsigned long arg_cpu_min_c1 = 208000;
+
+static int __init cpufreq_read_cpu_min_c1(char *cpu_min_c1)
+{
+	unsigned long ui_khz;
+	int ret;
+
+	ret = kstrtoul(cpu_min_c1, 0, &ui_khz);
+	if (ret)
+		return -EINVAL;
+
+	arg_cpu_min_c1 = ui_khz;
+	printk("cpu_min_c1=%lu\n", arg_cpu_min_c1);
+	return ret;
+}
+__setup("cpu_min_c1=", cpufreq_read_cpu_min_c1);
+
+unsigned long arg_cpu_min_c2 = 598000;
+
+static __init int cpufreq_read_cpu_min_c2(char *cpu_min_c2)
+{
+	unsigned long ui_khz;
+	int ret;
+
+	ret = kstrtoul(cpu_min_c2, 0, &ui_khz);
+	if (ret)
+		return -EINVAL;
+
+	arg_cpu_min_c2 = ui_khz;
+	printk("cpu_min_c2=%lu\n", arg_cpu_min_c2);
+	return ret;
+}
+__setup("cpu_min_c2=", cpufreq_read_cpu_min_c2);
+
 static unsigned long arg_cpu_max_c1 = 2002000;
 
 static int __init cpufreq_read_cpu_max_c1(char *cpu_max_c1)
@@ -1120,21 +1174,26 @@ static __init int init_domain(struct exynos_cpufreq_domain *domain,
 	 */
 #ifndef CONFIG_EXYNOS_HOTPLUG_GOVERNOR
 	if (!of_property_read_u32(dn, "max-freq", &val))
-		domain->max_freq = min(domain->max_freq, val);
+		domain->max_freq = val;
 #endif
 	if (!of_property_read_u32(dn, "min-freq", &val))
 		domain->min_freq = max(domain->min_freq, val);
 #ifdef CONFIG_SEC_PM
 	if (!of_property_read_u32(dn, "max-freq", &val))
-		domain->max_usable_freq = min(domain->max_freq, val);
+		domain->max_usable_freq = val;
 #endif
 
 	if (domain->id == 0) {
 		domain->max_usable_freq = arg_cpu_max_c1;
 		domain->max_freq = arg_cpu_max_c1;
+		domain->min_usable_freq = arg_cpu_min_c1;
+		domain->min_freq = arg_cpu_min_c1;
+
 	} else if (domain->id == 1) {
 		domain->max_usable_freq = arg_cpu_max_c2;
 		domain->max_freq = arg_cpu_max_c2;
+		domain->min_usable_freq = arg_cpu_min_c2;
+		domain->min_freq = arg_cpu_min_c2;
 	}
 
 	/* Default QoS for user */

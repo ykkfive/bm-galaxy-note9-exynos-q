@@ -133,8 +133,8 @@ static int gpu_set_dvfs_using_calapi(struct exynos_context *platform, int clk)
 
 	if (clk == platform->cur_clock) {
 		ret = 0;
-		GPU_LOG(DVFS_DEBUG, DUMMY, 0u, 0u, "%s: skipped to set clock for %dMhz!\n",
-				__func__, platform->cur_clock);
+//		GPU_LOG(DVFS_DEBUG, DUMMY, 0u, 0u, "%s: skipped to set clock for %dMhz!\n",
+//				__func__, platform->cur_clock);
 
 #ifdef CONFIG_MALI_RT_PM
 		if (platform->exynos_pm_domain)

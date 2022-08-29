@@ -2260,8 +2260,16 @@ static int shmem_security_request(struct link_device *ld, struct io_device *iod,
 		goto exit;
 	}
 
-	param2 = shm_get_security_param2(msr.mode, msr.size_boot);
-	param3 = shm_get_security_param3(msr.mode, msr.size_main);
+	err = shm_get_security_param2(msr.mode, msr.size_boot, &param2);
+	if (err) {
+		mif_err("%s: ERR! parameter2 is invalid\n", ld->name);
+		goto exit;
+	}
+	err = shm_get_security_param3(msr.mode, msr.size_main, &param3);
+	if (err) {
+		mif_err("%s: ERR! parameter3 is invalid\n", ld->name);
+		goto exit;
+	}
 
 #if !defined(CONFIG_CP_SECURE_BOOT)
 	if (msr.mode == 0)
@@ -3568,7 +3576,9 @@ struct link_device *shmem_create_link_device(struct platform_device *pdev)
 	ld->force_dump = shmem_force_dump;
 	ld->vss_dump = save_vss_dump;
 	ld->acpm_dump = save_acpm_dump;
+#ifdef CP_RAM_LOGGING
 	ld->cplog_dump = save_cplog_dump;
+#endif
 
 	if (mld->attrs & LINK_ATTR(LINK_ATTR_MEM_DUMP))
 		ld->dump_start = shmem_start_upload;

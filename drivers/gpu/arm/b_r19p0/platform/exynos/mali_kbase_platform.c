@@ -44,6 +44,13 @@ static gpu_dvfs_info gpu_dvfs_table_default[DVFS_TABLE_ROW_MAX];
 
 #include <linux/of_platform.h>
 
+/* Undervolt */
+static int gpu_freq_ceiling_L1 = 500000;
+static int gpu_freq_ceiling_L2 = 400000;
+static int gpu_freq_ceiling_L3 = 300000;
+static int gpu_undervolt_L1 = 6250;
+static int gpu_undervolt_L2 = 12500;
+static int gpu_undervolt_L3 = 18700;
 
 struct kbase_device *pkbdev;
 static int gpu_debug_level;
@@ -280,7 +287,7 @@ static int gpu_dvfs_update_config_data_from_dt(struct kbase_device *kbdev)
 		platform->governor_type = G3D_DVFS_GOVERNOR_DEFAULT;
 	}
 
-#ifdef CONFIG_CAL_IF
+#if 0
 	platform->gpu_dvfs_start_clock = cal_dfs_get_boot_freq(platform->g3d_cmu_cal_id);
 	GPU_LOG(DVFS_INFO, DUMMY, 0u, 0u, "get g3d start clock from ect : %d\n", platform->gpu_dvfs_start_clock);
 #else
@@ -295,12 +302,13 @@ static int gpu_dvfs_update_config_data_from_dt(struct kbase_device *kbdev)
 
 	gpu_update_config_data_int(np, "gpu_pmqos_cpu_cluster_num", &platform->gpu_pmqos_cpu_cluster_num);
 	gpu_update_config_data_int(np, "gpu_max_clock", &platform->gpu_max_clock);
-#ifdef CONFIG_CAL_IF
+#if 0
 	platform->gpu_max_clock_limit = (int)cal_dfs_get_max_freq(platform->g3d_cmu_cal_id);
 #else
 	gpu_update_config_data_int(np, "gpu_max_clock_limit", &platform->gpu_max_clock_limit);
 #endif
 	gpu_update_config_data_int(np, "gpu_min_clock", &platform->gpu_min_clock);
+	gpu_update_config_data_int(np, "gpu_min_clock_limit", &platform->gpu_min_clock_limit);
 	gpu_update_config_data_int(np, "gpu_dvfs_bl_config_clock", &platform->gpu_dvfs_config_clock);
 	gpu_update_config_data_int(np, "gpu_default_voltage", &platform->gpu_default_vol);
 	gpu_update_config_data_int(np, "gpu_cold_minimum_vol", &platform->cold_min_vol);
@@ -377,7 +385,7 @@ static int gpu_dvfs_update_asv_table(struct kbase_device *kbdev)
 	int dvfs_table_size = 0;
 	int table_idx;
 	struct device_node *np;
-	int i, j, cal_freq, cal_vol;
+	int i, j, cal_vol;
 
 	np = kbdev->dev->of_node;
 	gpu_update_config_data_int_array(np, "gpu_dvfs_table_size", of_data_int_array, 2);
@@ -402,40 +410,72 @@ static int gpu_dvfs_update_asv_table(struct kbase_device *kbdev)
 
 	gpu_update_config_data_int_array(np, "gpu_dvfs_table", of_data_int_array, dvfs_table_size);
 
-	for (i = 0; i < cal_get_dvfs_lv_num; i++) {
-		cal_freq = g3d_rate_volt[i].rate;
-		cal_vol = g3d_rate_volt[i].volt;
-		if (cal_freq <= platform->gpu_max_clock && cal_freq >= platform->gpu_min_clock) {
-			for (j = 0; j < dvfs_table_row_num; j++) {
-				table_idx = j * dvfs_table_col_num;
-				// Compare cal_freq with DVFS table freq
-				if (cal_freq == of_data_int_array[table_idx]) {
-					dvfs_table[j].clock = cal_freq;
-					dvfs_table[j].voltage = cal_vol;
-					dvfs_table[j].min_threshold = of_data_int_array[table_idx+1];
-					dvfs_table[j].max_threshold = of_data_int_array[table_idx+2];
-					dvfs_table[j].down_staycount = of_data_int_array[table_idx+3];
-					dvfs_table[j].mem_freq = of_data_int_array[table_idx+4];
-					dvfs_table[j].cpu_little_min_freq = of_data_int_array[table_idx+5];
-					GPU_LOG(DVFS_WARNING, DUMMY, 0u, 0u, "G3D %7dKhz ASV is %duV\n", cal_freq, cal_vol);
-					if (platform->gpu_pmqos_cpu_cluster_num == 3) {
-						dvfs_table[j].cpu_middle_min_freq = of_data_int_array[table_idx+6];
-						dvfs_table[j].cpu_big_max_freq = (of_data_int_array[table_idx+7] ? of_data_int_array[table_idx+7]:CPU_MAX);
-					GPU_LOG(DVFS_INFO, DUMMY, 0u, 0u, "up [%d] down [%d] staycnt [%d] mif [%d] lit [%d] mid [%d] big [%d]\n",
-							dvfs_table[j].max_threshold, dvfs_table[j].min_threshold, dvfs_table[j].down_staycount,
-							dvfs_table[j].mem_freq, dvfs_table[j].cpu_little_min_freq, dvfs_table[j].cpu_middle_min_freq,
-							dvfs_table[j].cpu_big_max_freq);
-					} else {
-						//Assuming cpu cluster number is 2
-						dvfs_table[j].cpu_big_max_freq = (of_data_int_array[table_idx+6] ? of_data_int_array[table_idx+6]:CPU_MAX);
-						GPU_LOG(DVFS_INFO, DUMMY, 0u, 0u, "up [%d] down [%d] staycnt [%d] mif [%d] lit [%d] big [%d]\n",
-								dvfs_table[j].max_threshold, dvfs_table[j].min_threshold, dvfs_table[j].down_staycount,
-								dvfs_table[j].mem_freq, dvfs_table[j].cpu_little_min_freq, dvfs_table[j].cpu_big_max_freq);
-					}
-				}
-			}
+	for (j = 0; j < dvfs_table_row_num; j++) {
+		table_idx = j * dvfs_table_col_num;
+		dvfs_table[j].clock = of_data_int_array[table_idx];
+		// Compare ECT table freq with DVFS table freq
+		for (i = 0; i < cal_get_dvfs_lv_num; i++) {
+			if (g3d_rate_volt[i].rate == dvfs_table[j].clock)
+				cal_vol = g3d_rate_volt[i].volt;
 		}
-	}
+		
+		if (!cal_vol || 0 > cal_vol)
+			cal_vol = platform->gpu_default_vol;
+
+		/* Undervolt */
+/*		
+		if (dvfs_table[j].clock < gpu_freq_ceiling_L3)
+			dvfs_table[j].voltage = cal_vol - gpu_undervolt_L3;
+		else if (dvfs_table[j].clock < gpu_freq_ceiling_L2)
+			dvfs_table[j].voltage = cal_vol - gpu_undervolt_L2;
+		else if (dvfs_table[j].clock < gpu_freq_ceiling_L1)
+			dvfs_table[j].voltage = cal_vol - gpu_undervolt_L1;
+		else if (dvfs_table[j].clock == 683000)
+		{
+//			if (dvfs_table[j].voltage > 800000)
+				dvfs_table[j].voltage = 800000;
+		}
+		else if (dvfs_table[j].clock == 764000)
+		{
+//			if (dvfs_table[j].voltage > 812500)
+				dvfs_table[j].voltage = 812500;
+		}
+		else
+			dvfs_table[j].voltage = cal_vol;
+*/
+
+		if (dvfs_table[j].clock < gpu_freq_ceiling_L3)
+			cal_vol = cal_vol - gpu_undervolt_L3;
+		else if (dvfs_table[j].clock < gpu_freq_ceiling_L2)
+			cal_vol = cal_vol - gpu_undervolt_L2;
+		else if (dvfs_table[j].clock < gpu_freq_ceiling_L1)
+			cal_vol = cal_vol - gpu_undervolt_L1;
+
+		dvfs_table[j].voltage = cal_vol;
+
+
+
+		dvfs_table[j].min_threshold = of_data_int_array[table_idx+1];
+		dvfs_table[j].max_threshold = of_data_int_array[table_idx+2];
+		dvfs_table[j].down_staycount = of_data_int_array[table_idx+3];
+		dvfs_table[j].mem_freq = of_data_int_array[table_idx+4];
+		dvfs_table[j].cpu_little_min_freq = of_data_int_array[table_idx+5];
+		GPU_LOG(DVFS_WARNING, DUMMY, 0u, 0u, "G3D %7dKhz ASV is %duV\n", dvfs_table[j].clock, dvfs_table[j].voltage);
+		if (platform->gpu_pmqos_cpu_cluster_num == 3) {
+			dvfs_table[j].cpu_middle_min_freq = of_data_int_array[table_idx+6];
+			dvfs_table[j].cpu_big_max_freq = (of_data_int_array[table_idx+7] ? of_data_int_array[table_idx+7]:CPU_MAX);
+		GPU_LOG(DVFS_INFO, DUMMY, 0u, 0u, "up [%d] down [%d] staycnt [%d] mif [%d] lit [%d] mid [%d] big [%d]\n",
+				dvfs_table[j].max_threshold, dvfs_table[j].min_threshold, dvfs_table[j].down_staycount,
+				dvfs_table[j].mem_freq, dvfs_table[j].cpu_little_min_freq, dvfs_table[j].cpu_middle_min_freq,
+				dvfs_table[j].cpu_big_max_freq);
+		} else {
+			// Assuming cpu cluster number is 2
+			dvfs_table[j].cpu_big_max_freq = (of_data_int_array[table_idx+6] ? of_data_int_array[table_idx+6]:CPU_MAX);
+			GPU_LOG(DVFS_INFO, DUMMY, 0u, 0u, "up [%d] down [%d] staycnt [%d] mif [%d] lit [%d] big [%d]\n",
+					dvfs_table[j].max_threshold, dvfs_table[j].min_threshold, dvfs_table[j].down_staycount,
+					dvfs_table[j].mem_freq, dvfs_table[j].cpu_little_min_freq, dvfs_table[j].cpu_big_max_freq);
+		}
+	}	
 	return 0;
 }
 #endif

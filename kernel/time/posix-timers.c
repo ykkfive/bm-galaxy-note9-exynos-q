@@ -213,7 +213,10 @@ static int posix_clock_realtime_get(clockid_t which_clock, struct timespec *tp)
 static int posix_clock_realtime_set(const clockid_t which_clock,
 				    const struct timespec *tp)
 {
-	return do_sys_settimeofday(tp, NULL);
+	struct timespec64 tp64;
+
+	tp64 = timespec_to_timespec64(*tp);
+	return do_sys_settimeofday64(&tp64, NULL);
 }
 
 static int posix_clock_realtime_adj(const clockid_t which_clock,
@@ -1077,6 +1080,33 @@ SYSCALL_DEFINE2(clock_adjtime, const clockid_t, which_clock,
 
 	return err;
 }
+
+#ifdef CONFIG_COMPAT
+
+COMPAT_SYSCALL_DEFINE2(clock_adjtime, clockid_t, which_clock,
+		       struct compat_timex __user *, utp)
+{
+	const struct k_clock *kc = clockid_to_kclock(which_clock);
+	struct timex ktx;
+	int err;
+
+	if (!kc)
+		return -EINVAL;
+	if (!kc->clock_adj)
+		return -EOPNOTSUPP;
+
+	err = compat_get_timex(&ktx, utp);
+	if (err)
+		return err;
+
+	err = kc->clock_adj(which_clock, &ktx);
+
+	if (err >= 0)
+		err = compat_put_timex(utp, &ktx);
+
+	return err;
+}
+#endif
 
 SYSCALL_DEFINE2(clock_getres, const clockid_t, which_clock,
 		struct timespec __user *, tp)

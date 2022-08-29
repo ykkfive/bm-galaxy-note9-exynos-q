@@ -31,10 +31,10 @@
 			reg = <0x0 0xf0000000 0x9200000>;
 		};
 
-		cp_ram_logging {
-			compatible = "exynos,cp_ram_logging";
-			reg = <0x0 0xf9200000 0x2000000>;
-		};
+//		cp_ram_logging {
+//			compatible = "exynos,cp_ram_logging";
+//			reg = <0x0 0xf9200000 0x2000000>;
+//		};
 
 		zswap_debug {
 			compatible = "exynos,zswap_debug";
@@ -4986,23 +4986,62 @@
 		#cooling-cells = <0x2>;
 		governor = "interactive";
 		interactive_info = <0x52850 0x5e 0x0>;
-		gpu_dvfs_table_size = <0x6 0x7>;
-		gpu_dvfs_table = <0x8ba60 0x4e 0x64 0x5 0x1b5fd0 0x1dc130 0x0 0x854d0 0x4e 0x63 0x1 0x1b5fd0 0x1dc130 0x0 0x6f158 0x4e 0x55 0x1 0x177bb8 0x1b5fd0 0x0 0x52850 0x4e 0x55 0x1 0x14a140 0x130b00 0x0 0x48ff8 0x4e 0x55 0x1 0xf78f0 0x0 0x0 0x3f7a0 0x4e 0x55 0x1 0xa50a0 0x0 0x0>;
+//		gpu_dvfs_table_size = <0x8 0x7>;
+		/* freq up down staycnt mif lit big */
+//		gpu_dvfs_table = <0x91ff0 0x4e 0x64 0x5 0x1b5fd0 0x1dc130 0x0 0x8ba60 0x4e 0x64 0x5 0x1b5fd0 0x1dc130 0x0 0x854d0 0x4e 0x63 0x1 0x1b5fd0 0x1dc130 0x0 0x6f158 0x4e 0x55 0x1 0x177bb8 0x1b5fd0 0x0 0x5dfe8 0x4e 0x55 0x1 0x14a140 0x130b00 0x0 0x52850 0x4e 0x55 0x1 0x14a140 0x130b00 0x0 0x48ff8 0x4e 0x55 0x1 0xf78f0 0x0 0x0 0x3f7a0 0x4e 0x55 0x1 0xa50a0 0x0 0x0>;
+/*
+		gpu_dvfs_table_size = <9 7>;
+		// freq up down staycnt mif lit big
+		gpu_dvfs_table = <
+						  683000 78 100 5 1794000 2002000 0
+						  598000 78 100 5 1794000 2002000 0
+						  572000 78 99 1 1794000 1950000 0
+						  546000 78 98 1 1794000 1950000 0
+						  455000 78 85 1 1539000 1794000 0
+						  385000 78 85 1 1352000 1248000 0
+						  338000 78 85 1 1352000 1248000 0
+						  299000 78 85 1 1014000 0 0
+						  260000 78 85 1 676000 0 0>;
+*/		
+/*				  
+		gpu_dvfs_table_size = <0x8 0x7>;
+		// freq up down staycnt mif lit big 
+		gpu_dvfs_table = <0x91ff0 0x4e 0x64 0x5 0x1b5fd0 0x1dc130 0x0 0x8ba60 0x4e 0x64 0x5 0x1b5fd0 0x1dc130 0x0 0x854d0 0x4e 0x63 0x1 0x1b5fd0 0x1dc130 0x0 0x6f158 0x4e 0x55 0x1 0x177bb8 0x1b5fd0 0x0 0x5dfe8 0x4e 0x55 0x1 0x14a140 0x130b00 0x0 0x52850 0x4e 0x55 0x1 0x14a140 0x130b00 0x0 0x48ff8 0x4e 0x55 0x1 0xf78f0 0x0 0x0 0x3f7a0 0x4e 0x55 0x1 0xa50a0 0x0 0x0>;
+*/
+		gpu_dvfs_table_size = <10 7>;
+		// freq up down staycnt mif lit big
+		gpu_dvfs_table = <
+						  764000 78 100 5 1794000 2002000 0
+						  683000 78 100 5 1794000 2002000 0
+						  598000 78 100 5 1794000 2002000 0
+						  572000 78 99 1 1794000 1950000 0
+						  546000 78 98 1 1794000 1950000 0
+						  455000 78 85 1 1539000 1794000 0
+						  385000 78 85 1 1352000 1248000 0
+						  338000 78 85 1 1352000 1248000 0
+						  299000 78 85 1 1014000 0 0
+						  260000 78 85 1 676000 0 0>;
+
 		gpu_sustainable_info = <0x0 0x0 0x0 0x0 0x0>;
 		gpu_pmqos_cpu_cluster_num = <0x2>;
 		gpu_pmu_status_reg_offset = <0x4044>;
 		gpu_pmu_status_local_pwr_mask = <0xf>;
-		gpu_max_clock = <0x8ba60>;
-		gpu_max_clock_limit = <0x8ba60>;
+//		gpu_max_clock = <0x91ff0>;
+//		gpu_max_clock_limit = <0x91ff0>;
+//		gpu_max_clock = <683000>;
+//		gpu_max_clock_limit = <683000>;
+		gpu_max_clock = <0x91ff0>;
+		gpu_max_clock_limit = <0x91ff0>;
 		gpu_min_clock = <0x3f7a0>;
+		gpu_min_clock_limit = <0x3f7a0>;
 		gpu_dvfs_start_clock = <0x3f7a0>;
 		gpu_dvfs_bl_config_clock = <0x3f7a0>;
 		gpu_default_voltage = <0xc3500>;
 		gpu_cold_minimum_vol = <0x0>;
 		gpu_voltage_offset_margin = <0x927c>;
 		gpu_tmu_control = <0x1>;
-		gpu_temp_throttling_level_num = <0x6>;
-		gpu_temp_throttling = <0x8ba60 0x854d0 0x6f158 0x52850 0x3f7a0 0x3f7a0>;
+		gpu_temp_throttling_level_num = <0x7>;
+		gpu_temp_throttling = <0x8ba60 0x854d0 0x6f158 0x5dfe8 0x52850 0x3f7a0 0x3f7a0>;
 		gpu_power_coeff = <0x271>;
 		gpu_dvfs_time_interval = <0x5>;
 		gpu_default_wakeup_lock = <0x1>;
@@ -5015,14 +5054,16 @@
 		gpu_dvfs_polling_time = <0x1e>;
 		gpu_pmqos_int_disable = <0x1>;
 		gpu_pmqos_mif_max_clock = <0x1b5fd0>;
-		gpu_pmqos_mif_max_clock_base = <0x8ba60>;
+//		gpu_pmqos_mif_max_clock_base = <0x91ff0>;
+//		gpu_pmqos_mif_max_clock_base = <683000>;
+		gpu_pmqos_mif_max_clock_base = <0x91ff0>;
 		gpu_cl_dvfs_start_base = <0x6f158>;
 		gpu_debug_level = <0x3>;
 		gpu_trace_level = <0x8>;
 		gpu_mo_min_clock = <0x6f158>;
 		gpu_boost_gpu_min_lock = <0x0>;
 		gpu_boost_egl_min_lock = <0x1c9080>;
-		gpu_vk_boost_max_lock = <0x52850>;
+		gpu_vk_boost_max_lock = <0x6f157>;
 		gpu_vk_boost_mif_min_lock = <0x1b5fd0>;
 		gpu_bts_support = <0x1>;
 		gpu_asv_cali_lock_val = <0x0>;
@@ -5965,6 +6006,7 @@
 			sec,regulator_dvdd = "tsp_io";
 			sec,regulator_avdd = "tsp_avdd";
 			sec,regulator_boot_on;
+			sec,always_lpmode = <1>;
 			sec,tclm_level = <0x2 0x2 0x2>;
 			sec,afe_base = <0x302 0x211 0x122>;
 			sec,project_name = "CROWN", "N960";
@@ -7997,6 +8039,7 @@
 		pinctrl-0 = <0xff 0x100>;
 		clocks = <0x1a 0x2be 0x1a 0x2c5>;
 		clock-names = "GATE_UFS_EMBD", "UFS_EMBD";
+		ufs-pm-qos-int = <0x825f0>;
 		ufs-pm-qos-fsys0 = <0x30d40>;
 		dma-coherent;
 		freq-table-hz = <0x0 0x0 0x0 0x0>;
@@ -8694,8 +8737,8 @@
 
 				BUCK1 {
 					regulator-name = "vdd_mif";
-					regulator-min-microvolt = <0x6ddd0>;
-					regulator-max-microvolt = <0xe7ef0>;
+					regulator-min-microvolt = <0x61a80>;
+					regulator-max-microvolt = <0xdbba0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x1770>;
 					regulator-initial-mode = <0x2>;
@@ -8705,8 +8748,8 @@
 
 				BUCK2 {
 					regulator-name = "vdd_cpucl1";
-					regulator-min-microvolt = <0x6ddd0>;
-					regulator-max-microvolt = <0x13d620>;
+					regulator-min-microvolt = <0x61a80>;
+					regulator-max-microvolt = <0x1312d0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x1770>;
 					regulator-initial-mode = <0x1>;
@@ -8716,8 +8759,8 @@
 
 				BUCK3 {
 					regulator-name = "vdd_cpucl0";
-					regulator-min-microvolt = <0x6ddd0>;
-					regulator-max-microvolt = <0x13d620>;
+					regulator-min-microvolt = <0x61a80>;
+					regulator-max-microvolt = <0x1312d0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x1770>;
 					regulator-initial-mode = <0x1>;
@@ -8727,8 +8770,8 @@
 
 				BUCK4 {
 					regulator-name = "vdd_int";
-					regulator-min-microvolt = <0x6ddd0>;
-					regulator-max-microvolt = <0xe7ef0>;
+					regulator-min-microvolt = <0x61a80>;
+					regulator-max-microvolt = <0xdbba0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x1770>;
 					regulator-initial-mode = <0x2>;
@@ -8738,8 +8781,8 @@
 
 				BUCK5 {
 					regulator-name = "vdd_cam";
-					regulator-min-microvolt = <0x6ddd0>;
-					regulator-max-microvolt = <0xe7ef0>;
+					regulator-min-microvolt = <0x61a80>;
+					regulator-max-microvolt = <0xdbba0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x1770>;
 					regulator-initial-mode = <0x2>;
@@ -8749,8 +8792,8 @@
 
 				BUCK6 {
 					regulator-name = "vdd_g3d";
-					regulator-min-microvolt = <0x6ddd0>;
-					regulator-max-microvolt = <0xe7ef0>;
+					regulator-min-microvolt = <0x61a80>;
+					regulator-max-microvolt = <0xdbba0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x1770>;
 					regulator-initial-mode = <0x2>;
@@ -8760,8 +8803,8 @@
 
 				BUCK7 {
 					regulator-name = "vdd_cpucl1_m";
-					regulator-min-microvolt = <0x6ddd0>;
-					regulator-max-microvolt = <0x13d620>;
+					regulator-min-microvolt = <0x61a80>;
+					regulator-max-microvolt = <0x1312d0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x1770>;
 					regulator-initial-mode = <0x1>;
@@ -8771,8 +8814,8 @@
 
 				BUCK8 {
 					regulator-name = "vdd2_mem";
-					regulator-min-microvolt = <0xdbba0>;
-					regulator-max-microvolt = <0x13d620>;
+					regulator-min-microvolt = <0xcf850>;
+					regulator-max-microvolt = <0x1312d0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x1770>;
 					regulator-initial-mode = <0x3>;
@@ -8782,8 +8825,8 @@
 
 				BUCK9 {
 					regulator-name = "vddq_mem";
-					regulator-min-microvolt = <0x6ddd0>;
-					regulator-max-microvolt = <0xe7ef0>;
+					regulator-min-microvolt = <0x61a80>;
+					regulator-max-microvolt = <0xdbba0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x1770>;
 					regulator-initial-mode = <0x2>;
@@ -8793,8 +8836,8 @@
 
 				BUCK10 {
 					regulator-name = "vdd_lldo1";
-					regulator-min-microvolt = <0xb71b0>;
-					regulator-max-microvolt = <0x118c30>;
+					regulator-min-microvolt = <0xaae60>;
+					regulator-max-microvolt = <0x10c8e0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x1770>;
 					regulator-initial-mode = <0x3>;
@@ -8804,8 +8847,8 @@
 
 				BUCK11 {
 					regulator-name = "vdd_lldo2";
-					regulator-min-microvolt = <0xdbba0>;
-					regulator-max-microvolt = <0x13d620>;
+					regulator-min-microvolt = <0xcf850>;
+					regulator-max-microvolt = <0x1312d0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x1770>;
 					regulator-initial-mode = <0x3>;
@@ -8815,8 +8858,8 @@
 
 				BUCK12 {
 					regulator-name = "vdd_lldo3";
-					regulator-min-microvolt = <0x10c8e0>;
-					regulator-max-microvolt = <0x16e360>;
+					regulator-min-microvolt = <0xf4240>;
+					regulator-max-microvolt = <0x1312d0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x1770>;
 					regulator-initial-mode = <0x3>;
@@ -8826,8 +8869,8 @@
 
 				BUCK13 {
 					regulator-name = "vdd_mldo";
-					regulator-min-microvolt = <0x1ab3f0>;
-					regulator-max-microvolt = <0x20ce70>;
+					regulator-min-microvolt = <0x192d50>;
+					regulator-max-microvolt = <0x200b20>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x1770>;
 					regulator-initial-mode = <0x3>;
@@ -8837,8 +8880,8 @@
 
 				LDO1 {
 					regulator-name = "vdd_ldo1";
-					regulator-min-microvolt = <0xaae60>;
-					regulator-max-microvolt = <0xe7ef0>;
+					regulator-min-microvolt = <0x927c0>;
+					regulator-max-microvolt = <0xdbba0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-initial-mode = <0x3>;
@@ -8848,8 +8891,8 @@
 
 				LDO2 {
 					regulator-name = "vqmmc";
-					regulator-min-microvolt = <0x19f0a0>;
-					regulator-max-microvolt = <0x325aa0>;
+					regulator-min-microvolt = <0x186a00>;
+					regulator-max-microvolt = <0x2dc6c0>;
 					regulator-ramp-delay = <0x2ee0>;
 					linux,phandle = <0x29f>;
 					phandle = <0x29f>;
@@ -8857,8 +8900,8 @@
 
 				LDO3 {
 					regulator-name = "vdd_ldo3";
-					regulator-min-microvolt = <0x186a00>;
-					regulator-max-microvolt = <0x1dc130>;
+					regulator-min-microvolt = <0x16e360>;
+					regulator-max-microvolt = <0x1cfde0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-initial-mode = <0x3>;
@@ -8868,8 +8911,8 @@
 
 				LDO4 {
 					regulator-name = "vdd_ldo4";
-					regulator-min-microvolt = <0xaae60>;
-					regulator-max-microvolt = <0x10c8e0>;
+					regulator-min-microvolt = <0x927c0>;
+					regulator-max-microvolt = <0xf4240>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-initial-mode = <0x1>;
@@ -8879,8 +8922,8 @@
 
 				LDO5 {
 					regulator-name = "vdd_ldo5";
-					regulator-min-microvolt = <0x186a00>;
-					regulator-max-microvolt = <0x1dc130>;
+					regulator-min-microvolt = <0x16e360>;
+					regulator-max-microvolt = <0x1cfde0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-initial-mode = <0x1>;
@@ -8890,8 +8933,8 @@
 
 				LDO6 {
 					regulator-name = "vdd_ldo6";
-					regulator-min-microvolt = <0x6ddd0>;
-					regulator-max-microvolt = <0xe7ef0>;
+					regulator-min-microvolt = <0x61a80>;
+					regulator-max-microvolt = <0xdbba0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-initial-mode = <0x1>;
@@ -8901,8 +8944,8 @@
 
 				LDO7 {
 					regulator-name = "vdd_ldo7";
-					regulator-min-microvolt = <0x6ddd0>;
-					regulator-max-microvolt = <0xe7ef0>;
+					regulator-min-microvolt = <0x61a80>;
+					regulator-max-microvolt = <0xdbba0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-initial-mode = <0x1>;
@@ -8912,8 +8955,8 @@
 
 				LDO8 {
 					regulator-name = "vdd_ldo8";
-					regulator-min-microvolt = <0xaae60>;
-					regulator-max-microvolt = <0x13d620>;
+					regulator-min-microvolt = <0x927c0>;
+					regulator-max-microvolt = <0x124f80>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-initial-mode = <0x1>;
@@ -8923,8 +8966,8 @@
 
 				LDO9 {
 					regulator-name = "vdd_ldo9";
-					regulator-min-microvolt = <0x186a00>;
-					regulator-max-microvolt = <0x1dc130>;
+					regulator-min-microvolt = <0x16e360>;
+					regulator-max-microvolt = <0x1cfde0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-initial-mode = <0x1>;
@@ -8934,8 +8977,8 @@
 
 				LDO10 {
 					regulator-name = "vdd_ldo10";
-					regulator-min-microvolt = <0x6ddd0>;
-					regulator-max-microvolt = <0xe7ef0>;
+					regulator-min-microvolt = <0x61a80>;
+					regulator-max-microvolt = <0xdbba0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-initial-mode = <0x1>;
@@ -8945,8 +8988,8 @@
 
 				LDO11 {
 					regulator-name = "vdd_ldo11";
-					regulator-min-microvolt = <0x6ddd0>;
-					regulator-max-microvolt = <0xe7ef0>;
+					regulator-min-microvolt = <0x61a80>;
+					regulator-max-microvolt = <0xdbba0>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-initial-mode = <0x1>;
@@ -8956,8 +8999,8 @@
 
 				LDO12 {
 					regulator-name = "vdd_ldo12";
-					regulator-min-microvolt = <0xaae60>;
-					regulator-max-microvolt = <0x10c8e0>;
+					regulator-min-microvolt = <0x927c0>;
+					regulator-max-microvolt = <0xf4240>;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-initial-mode = <0x1>;
 					linux,phandle = <0x2a9>;
@@ -8966,8 +9009,8 @@
 
 				LDO13 {
 					regulator-name = "vdd_ldo13";
-					regulator-min-microvolt = <0x186a00>;
-					regulator-max-microvolt = <0x1dc130>;
+					regulator-min-microvolt = <0x16e360>;
+					regulator-max-microvolt = <0x1cfde0>;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-initial-mode = <0x1>;
 					linux,phandle = <0x2aa>;
@@ -8976,8 +9019,8 @@
 
 				LDO14 {
 					regulator-name = "vdd_ldo14";
-					regulator-min-microvolt = <0x19f0a0>;
-					regulator-max-microvolt = <0x331df0>;
+					regulator-min-microvolt = <0x186a00>;
+					regulator-max-microvolt = <0x325aa0>;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-initial-mode = <0x1>;
 					linux,phandle = <0x2ab>;
@@ -8986,8 +9029,8 @@
 
 				LDO30 {
 					regulator-name = "vdd_ldo30";
-					regulator-min-microvolt = <0x6ddd0>;
-					regulator-max-microvolt = <0x10c8e0>;
+					regulator-min-microvolt = <0x61a80>;
+					regulator-max-microvolt = <0xf4240>;
 					regulator-always-on;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-initial-mode = <0x1>;
@@ -8997,8 +9040,8 @@
 
 				LDO31 {
 					regulator-name = "vmmc";
-					regulator-min-microvolt = <0x2ab980>;
-					regulator-max-microvolt = <0x2ab980>;
+					regulator-min-microvolt = <0x2932e0>;
+					regulator-max-microvolt = <0x2932e0>;
 					regulator-ramp-delay = <0x2ee0>;
 					linux,phandle = <0x2ad>;
 					phandle = <0x2ad>;
@@ -9006,8 +9049,8 @@
 
 				LDO33 {
 					regulator-name = "vdd_pmic_codec_1p8";
-					regulator-min-microvolt = <0x1b7740>;
-					regulator-max-microvolt = <0x1b7740>;
+					regulator-min-microvolt = <0x19f0a0>;
+					regulator-max-microvolt = <0x19f0a0>;
 					regulator-always-on;
 					regulator-boot-on;
 					regulator-initial-mode = <0x3>;
@@ -9017,8 +9060,8 @@
 
 				LDO34 {
 					regulator-name = "vdd_codec_1p2";
-					regulator-min-microvolt = <0x124f80>;
-					regulator-max-microvolt = <0x124f80>;
+					regulator-min-microvolt = <0x10c8e0>;
+					regulator-max-microvolt = <0x10c8e0>;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-enable-ramp-delay = <0x1388>;
 					linux,phandle = <0xdb>;
@@ -9027,8 +9070,8 @@
 
 				LDO37 {
 					regulator-name = "vdd_mcu_1p8";
-					regulator-min-microvolt = <0x1b7740>;
-					regulator-max-microvolt = <0x1b7740>;
+					regulator-min-microvolt = <0x19f0a0>;
+					regulator-max-microvolt = <0x19f0a0>;
 					regulator-ramp-delay = <0x2ee0>;
 					regulator-initial-mode = <0x3>;
 					linux,phandle = <0x2ae>;
@@ -9149,7 +9192,8 @@
 		devfreq_domain_name = "dvfs_mif";
 		use_delay_time = "true";
 		delay_time_list = "20";
-		freq_info = <0x1fefc8 0x32c80 0xf78f0 0x32c80 0x1fefc8 0x1fefc8>;
+		/* initial_freq, default_qos, suspend_freq, min_freq, max_freq reboot_freq */
+		freq_info = <0x1fefc8 0x32c80 0x32c80 0x32c80 0x1fefc8 0x1fefc8>;
 		boot_info = <0x28 0x1b5fd0>;
 		use_get_dev = "false";
 		polling_ms = <0x0>;
@@ -9213,7 +9257,7 @@
 		devfreq_type = "disp";
 		devfreq_domain_name = "dvfs_disp";
 		use_delay_time = "false";
-		freq_info = <0x9c400 0x30d40 0x9c400 0x30d40 0x9c400 0x9c400>;
+		freq_info = <0x9c400 0x20b70 0x9c400 0x20b70 0x9c400 0x9c400>;
 		boot_info = <0x28 0x9c400>;
 		use_get_dev = "false";
 		polling_ms = <0x0>;
@@ -10329,8 +10373,8 @@
 			device_type = "freqvar-tune";
 			shared-cpus = "0-3";
 			boost_table = <0x64 0x91ff0 0x3c 0xae8f8 0x1e 0xcb200 0x14 0xe7b08 0xa 0x101148 0x0>;
-			up_rate_limit_table = <0x5>;
-			down_rate_limit_table = <0x5>;
+			up_rate_limit_table = <0x1f4>;
+			down_rate_limit_table = <0x9c4>;
 			upscale_ratio_table = <0x50>;
 		};
 
@@ -10338,8 +10382,8 @@
 			device_type = "freqvar-tune";
 			shared-cpus = "4-7";
 			boost_table = <0x14 0xd1790 0xf 0xeadd0 0x5 0x133dc8 0x0>;
-			up_rate_limit_table = <0x5>;
-			down_rate_limit_table = <0x5>;
+			up_rate_limit_table = <0x1f4>;
+			down_rate_limit_table = <0x9c4>;
 			upscale_ratio_table = <0x32 0xeadd0 0x41>;
 		};
 	};
@@ -10384,7 +10428,7 @@
 			device_type = "schedutil-domain";
 			shared-cpus = "4-7";
 			enabled = <0x1>;
-			expired_time = <0x50>;
+			expired_time = <0x28>;
 			qos_min_class = <0x5>;
 			linux,phandle = <0x2f0>;
 			phandle = <0x2f0>;
@@ -10425,7 +10469,7 @@
 			sibling-cpus = "0-3";
 			cal-id = <0xb040002>;
 			dm-type = <0x0>;
-			min-freq = <0x6f158>;
+			min-freq = <0x32c80>;
 			pm_qos-min-class = <0x3>;
 			pm_qos-max-class = <0x4>;
 			#cooling-cells = <0x2>;
@@ -10437,7 +10481,7 @@
 				mif-perf {
 					const-type = <0x0>;
 					dm-type = <0x2>;
-					table = <0x1dc130 0xce4c8 0x1b5fd0 0xce4c8 0x19c990 0xce4c8 0x163780 0xa50a0 0x130b00 0xa50a0 0x101148 0xa50a0 0xe7b08 0xa50a0 0xcb200 0x854d0 0xae8f8 0x854d0 0x91ff0 0x66c88 0x6f158 0x0>;
+					table = <0x1e8c50 0xce4c8 0x1dc130 0xce4c8 0x1b5fd0 0xce4c8 0x19c990 0xce4c8 0x163780 0xa50a0 0x130b00 0xa50a0 0x101148 0xa50a0 0xe7b08 0xa50a0 0xcb200 0x854d0 0xae8f8 0x854d0 0x91ff0 0x66c88 0x6f158 0x0 0x48ff8 0x0 0x32c80 0x0>;
 				};
 
 				mif-skew {
@@ -10454,9 +10498,9 @@
 			sibling-cpus = "4-7";
 			cal-id = <0xb040003>;
 			dm-type = <0x1>;
-			min-freq = <0x9eb10>;
-			max-freq = <0x1b5fd0>;
-			policy-max = <0x1b5fd0>;
+			min-freq = <0x91ff0>;
+			max-freq = <0x2d3a20>;
+			policy-max = <0x2c0970>;
 			pm_qos-min-class = <0x5>;
 			pm_qos-max-class = <0x6>;
 			pm_qos-booting = <0x1b5fd0>;
@@ -10469,7 +10513,7 @@
 				mif-perf {
 					const-type = <0x0>;
 					dm-type = <0x2>;
-					table = <0x2c0970 0x1b5fd0 0x2ba3e0 0x1b5fd0 0x294280 0x1b5fd0 0x287760 0x1b5fd0 0x261600 0x1b5fd0 0x234f10 0x1b5fd0 0x202290 0x1b5fd0 0x1e8c50 0x1b5fd0 0x1d5ba0 0x1b5fd0 0x1b5fd0 0x1b5fd0 0x19c990 0x177bb8 0x183350 0xf78f0 0x166a48 0xce4c8 0x133dc8 0xa50a0 0x11da50 0xa50a0 0x104410 0xa50a0 0xeadd0 0x854d0 0xd1790 0x854d0 0xb4e88 0x66c88 0x9eb10 0x66c88 0x91ff0 0x66c88>;
+					table = <0x2d3a20 0x1fefc8 0x2c0970 0x1b5fd0 0x2ba3e0 0x1b5fd0 0x294280 0x1b5fd0 0x287760 0x1b5fd0 0x261600 0x1b5fd0 0x234f10 0x1b5fd0 0x202290 0x1b5fd0 0x1e8c50 0x1b5fd0 0x1d5ba0 0x1b5fd0 0x1b5fd0 0x1b5fd0 0x19c990 0x177bb8 0x183350 0xf78f0 0x166a48 0xce4c8 0x133dc8 0xa50a0 0x11da50 0xa50a0 0x104410 0xa50a0 0xeadd0 0x854d0 0xd1790 0x854d0 0xb4e88 0x66c88 0x9eb10 0x66c88 0x91ff0 0x66c88 0x91ff0 0x66c88>;
 				};
 
 				mif-skew {
@@ -10609,7 +10653,7 @@
 				};
 
 				big-switch-on {
-					temperature = <0xd6d8>;
+					temperature = <0xea60>;
 					hysteresis = <0x7d0>;
 					type = "active";
 					linux,phandle = <0x2f3>;
@@ -10617,7 +10661,8 @@
 				};
 
 				big-control-temp {
-					temperature = <0x14438>;
+//					temperature = <0x157c0>;
+					temperature = <0x16b48>;
 					hysteresis = <0x1388>;
 					type = "passive";
 					linux,phandle = <0x14e>;
@@ -13271,21 +13316,21 @@
 
 		vdd_lldo1 {
 			regulator_name = "vdd_lldo1";
-			suspend_volt = <0xc3500>;
+			suspend_volt = <0xc042c>;
 			init_volt = <0xcf850>;
 			volt_range_step = <0xf424>;
 		};
 
 		vdd_lldo3 {
 			regulator_name = "vdd_lldo3";
-			suspend_volt = <0x1312d0>;
+			suspend_volt = <0x12e1fc>;
 			init_volt = <0x13d620>;
 			volt_range_step = <0xf424>;
 		};
 
 		vdd_mldo {
 			regulator_name = "vdd_mldo";
-			suspend_volt = <0x1c3a90>;
+			suspend_volt = <0x1bd8e8>;
 			init_volt = <0x1e8480>;
 			volt_range_step = <0x30d4>;
 		};
@@ -13390,8 +13435,8 @@
 			cl0 {
 				qos,label = "LIT";
 				qos,delay_time = <0x9>;
-				qos,table_size = <0xa>;
-				qos,table = <0x1b5fd0 0x19c990 0x163780 0x130b00 0x101148 0xe7b08 0xcb200 0xae8f8 0x91ff0 0x6f158>;
+				qos,table_size = <0xe>;
+				qos,table = <0x1e8c50 0x1dc130 0x1b5fd0 0x19c990 0x163780 0x130b00 0x101148 0xe7b08 0xcb200 0xae8f8 0x91ff0 0x6f158 0x48ff8 0x32c80>;
 			};
 
 			cl1 {

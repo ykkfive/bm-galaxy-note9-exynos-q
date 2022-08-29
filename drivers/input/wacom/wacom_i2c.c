@@ -815,7 +815,7 @@ bool wacom_get_status_data(struct wacom_i2c *wac_i2c, char *data)
 
 		coordc = 0;
 		cancel_delayed_work(&wac_i2c->gxscan_work);
-		schedule_delayed_work(&wac_i2c->gxscan_work,
+		queue_delayed_work(system_power_efficient_wq, &wac_i2c->gxscan_work,
 				      msecs_to_jiffies(1500));
 	}
 
@@ -954,7 +954,7 @@ int wacom_i2c_coord(struct wacom_i2c *wac_i2c)
 			input_err(true, &client->dev,
 				"%s schedule resume work\n", __func__);
 			cancel_delayed_work(&wac_i2c->resume_work);
-			schedule_delayed_work(&wac_i2c->resume_work,
+			queue_delayed_work(system_power_efficient_wq, &wac_i2c->resume_work,
 				msecs_to_jiffies(EPEN_RESUME_DELAY));
 		} else {
 			input_err(true, &client->dev,
@@ -1037,13 +1037,13 @@ int wacom_i2c_coord(struct wacom_i2c *wac_i2c)
 			input_info(true, &client->dev, "fullscan IN rdy(%d) tsp(%d) without x scan\n",
 				   rdy, tsp);
 			cancel_delayed_work(&wac_i2c->fullscan_work);
-			schedule_delayed_work(&wac_i2c->fullscan_work,
+			queue_delayed_work(system_power_efficient_wq, &wac_i2c->fullscan_work,
 						  msecs_to_jiffies(2000));
 			return 0;
 		}
 
 		cancel_delayed_work(&wac_i2c->gxscan_work);
-		schedule_delayed_work(&wac_i2c->gxscan_work,
+		queue_delayed_work(system_power_efficient_wq, &wac_i2c->gxscan_work,
 				      msecs_to_jiffies(1500));
 		return 0;
 	} else if  (tsp && wac_i2c->fullscan_mode) {  
@@ -1051,7 +1051,7 @@ int wacom_i2c_coord(struct wacom_i2c *wac_i2c)
 			input_info(true, &client->dev, "fullscan IN rdy(%d) tsp(%d)\n",
 				   rdy, tsp);
 			cancel_delayed_work(&wac_i2c->fullscan_work);
-			schedule_delayed_work(&wac_i2c->fullscan_work,
+			queue_delayed_work(system_power_efficient_wq, &wac_i2c->fullscan_work,
 						  msecs_to_jiffies(2000));
 		}
 	}
@@ -1623,7 +1623,7 @@ void wacom_wakeup_sequence(struct wacom_i2c *wac_i2c)
 	}
 
 	cancel_delayed_work_sync(&wac_i2c->resume_work);
-	schedule_delayed_work(&wac_i2c->resume_work,
+	queue_delayed_work(system_power_efficient_wq, &wac_i2c->resume_work,
 			      msecs_to_jiffies(EPEN_RESUME_DELAY));
 
 	if (device_may_wakeup(&client->dev))
@@ -2019,7 +2019,7 @@ static void init_pen_insert(struct wacom_i2c *wac_i2c)
 	INIT_DELAYED_WORK(&wac_i2c->pen_insert_dwork, pen_insert_work);
 
 	/* update the current status */
-	schedule_delayed_work(&wac_i2c->pen_insert_dwork, HZ * 5);
+	queue_delayed_work(system_power_efficient_wq, &wac_i2c->pen_insert_dwork, HZ * 5);
 }
 
 static int wacom_i2c_input_open(struct input_dev *dev)
@@ -2278,7 +2278,7 @@ err_open_node:
 	set_fs(old_fs);
 	mutex_unlock(&wac_i2c->freq_write_lock);
 
-	schedule_delayed_work(&wac_i2c->lcd_freq_done_work, HZ * 5);
+	queue_delayed_work(system_power_efficient_wq, &wac_i2c->lcd_freq_done_work, HZ * 5);
 }
 
 static void wacom_i2c_finish_lcd_freq_work(struct work_struct *work)
@@ -2774,7 +2774,7 @@ static int wacom_usb_typec_notification_cb(struct notifier_block *nb,
 
 	cancel_delayed_work(&wac_i2c->usb_typec_work);
 	wac_i2c->dp_connect_cmd = usb_typec_info.sub1;
-	schedule_delayed_work(&wac_i2c->usb_typec_work, msecs_to_jiffies(1));
+	queue_delayed_work(system_power_efficient_wq, &wac_i2c->usb_typec_work, msecs_to_jiffies(1));
 out:
 	return 0;
 }
@@ -2794,7 +2794,7 @@ static void wacom_usb_typec_nb_register_work(struct work_struct *work)
 					MANAGER_NOTIFY_CCIC_WACOM);
 	if (ret) {
 		count++;
-		schedule_delayed_work(&wac_i2c->typec_nb_reg_work, msecs_to_jiffies(10));
+		queue_delayed_work(system_power_efficient_wq, &wac_i2c->typec_nb_reg_work, msecs_to_jiffies(10));
 	} else {
 		input_err(true, &wac_i2c->client->dev, "%s: success\n", __func__);
 	}
@@ -3238,7 +3238,7 @@ static int wacom_i2c_probe(struct i2c_client *client,
 		INIT_DELAYED_WORK(&wac_i2c->usb_typec_work, wacom_usb_typec_work);
 		INIT_DELAYED_WORK(&wac_i2c->typec_nb_reg_work,
 					wacom_usb_typec_nb_register_work);
-		schedule_delayed_work(&wac_i2c->typec_nb_reg_work, msecs_to_jiffies(10));
+		queue_delayed_work(system_power_efficient_wq, &wac_i2c->typec_nb_reg_work, msecs_to_jiffies(10));
 	}
 
 	input_info(true, &client->dev, "probe done\n");
