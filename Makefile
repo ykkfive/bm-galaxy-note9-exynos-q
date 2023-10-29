@@ -307,6 +307,13 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 HOSTCC       = gcc
 HOSTCXX      = g++
 HOSTCFLAGS   := -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer -std=gnu89
+
+KBUILD_CFLAGS	+= $(call cc-option, -march=armv8-a+crypto+crc,)
+ifeq ($(CONFIG_SOC_EXYNOS9810), y)
+KBUILD_CFLAGS	+= $(call cc-option, -mcpu=cortex-a55+crypto+crc,)
+KBUILD_CFLAGS	+= $(call cc-option, -mtune=exynos-m3+crypto+crc,)
+endif
+
 HOSTCXXFLAGS = -O2
 
 # Decide whether to build built-in, modular, or both.
@@ -387,6 +394,12 @@ LINUXINCLUDE    := \
 
 LINUXINCLUDE	+= $(filter-out $(LINUXINCLUDE),$(USERINCLUDE))
 
+# VFP / SIMD Flags
+SIMD_CFLAGS := \
+		   -DUSE_V8_CRYPTO_EXTENSIONS \
+		   -march=armv8-a+crypto+crc \
+		   -ftree-vectorize
+
 KBUILD_AFLAGS   := -D__ASSEMBLY__
 ###KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 ###		   -fno-strict-aliasing -fno-common -Wno-unused-value -fshort-wchar \
@@ -406,6 +419,13 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-aggressive-loop-optimizations \
 		   -fno-delete-null-pointer-checks -Wno-maybe-uninitialized \
 		   -std=gnu89
+
+KBUILD_CFLAGS	+= $(call cc-option, -march=armv8-a+crypto+crc,)
+ifeq ($(CONFIG_SOC_EXYNOS9810), y)
+KBUILD_CFLAGS	+= $(call cc-option, -mcpu=cortex-a55+crypto+crc,)
+KBUILD_CFLAGS	+= $(call cc-option, -mtune=exynos-m3+crypto+crc,)
+endif
+
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
@@ -431,7 +451,7 @@ export CFLAGS_KASAN CFLAGS_KASAN_NOSANITIZE CFLAGS_UBSAN
 export KBUILD_AFLAGS AFLAGS_KERNEL AFLAGS_MODULE
 export KBUILD_AFLAGS_MODULE KBUILD_CFLAGS_MODULE KBUILD_LDFLAGS_MODULE
 export KBUILD_AFLAGS_KERNEL KBUILD_CFLAGS_KERNEL
-export KBUILD_ARFLAGS
+export KBUILD_ARFLAGS SIMD_CFLAGS
 
 # When compiling out-of-tree modules, put MODVERDIR in the module
 # tree rather than in the kernel tree. The kernel tree might

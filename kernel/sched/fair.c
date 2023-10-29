@@ -81,13 +81,13 @@ enum sched_tunable_scaling sysctl_sched_tunable_scaling = SCHED_TUNABLESCALING_N
  * Minimal preemption granularity for CPU-bound tasks:
  * (default: 0.75 msec * (1 + ilog(ncpus)), units: nanoseconds)
  */
-unsigned int sysctl_sched_min_granularity		= 1250000ULL;
-unsigned int normalized_sysctl_sched_min_granularity	= 1250000ULL;
+unsigned int sysctl_sched_min_granularity		= 500000ULL;
+unsigned int normalized_sysctl_sched_min_granularity	= 500000ULL;
 
 /*
  * is kept at sysctl_sched_latency / sysctl_sched_min_granularity
  */
-static unsigned int sched_nr_latency = 8;
+static unsigned int sched_nr_latency = 6;
 
 /*
  * After fork, child runs first. If set to 0 (default) then
@@ -126,7 +126,7 @@ unsigned int __read_mostly sysctl_sched_shares_window = 10000000UL;
  *
  * default: 5 msec, units: microseconds
   */
-unsigned int sysctl_sched_cfs_bandwidth_slice = 5000UL;
+unsigned int sysctl_sched_cfs_bandwidth_slice = 4000UL;
 #endif
 
 /*
@@ -2993,12 +2993,25 @@ __update_load_avg(u64 now, int cpu, struct sched_avg *sa,
 	/*
 	 * Step 2: update *_avg.
 	 */
+	
+/*
 	sa->load_avg = div_u64(sa->load_sum, LOAD_AVG_MAX);
 	if (cfs_rq) {
 		cfs_rq->runnable_load_avg =
 			div_u64(cfs_rq->runnable_load_sum, LOAD_AVG_MAX);
 	}
 	sa->util_avg = sa->util_sum / LOAD_AVG_MAX;
+*/
+
+	u32 divider = LOAD_AVG_MAX - 1024 + sa->period_contrib;
+	sa->load_avg = div_u64(sa->load_sum, divider);
+	if (cfs_rq) {
+		cfs_rq->runnable_load_avg =
+			div_u64(cfs_rq->runnable_load_sum, divider);
+	}
+	sa->util_avg = sa->util_sum / divider;
+
+
 
 	cfs_se_util_change(sa);
 	return 1;
@@ -9522,6 +9535,17 @@ static struct rq *find_busiest_queue(struct lb_env *env,
 			continue;
 
 		capacity = capacity_of(i);
+
+		/*
+		 * For ASYM_CPUCAPACITY domains, don't pick a CPU that could
+		 * eventually lead to active_balancing high->low capacity.
+		 * Higher per-CPU capacity is considered better than balancing
+		 * average load.
+		 */
+		if (env->sd->flags & SD_ASYM_CPUCAPACITY &&
+		    capacity_of(env->dst_cpu) < capacity &&
+		    rq->nr_running == 1)
+			continue;
 
 		wl = weighted_cpuload(i);
 

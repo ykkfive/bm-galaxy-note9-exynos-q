@@ -81,6 +81,8 @@ extern void *__vmalloc_node_range(unsigned long size, unsigned long align,
 			pgprot_t prot, unsigned long vm_flags, int node,
 			const void *caller);
 
+extern void *__vmalloc_node_flags(unsigned long size, int node, gfp_t flags);
+
 extern void vfree(const void *addr);
 
 extern void *vmap(struct page **pages, unsigned int count,

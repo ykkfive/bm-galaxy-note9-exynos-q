@@ -3,7 +3,7 @@
 # Linux/arm64 4.9.217 Kernel Configuration
 #
 
-CONFIG_LOCALVERSION=".BeastMode.v2.18e2New" # branched from bm218e2NoStoreMode
+CONFIG_LOCALVERSION=".BeastMode.v2.18eNoStoreMode" # branched from bm218e2, NoStoreMode
 
 
 
@@ -5988,4 +5988,3 @@ CONFIG_POWERSUSPEND=y
 # CONFIG_POWERSUSPEND_DEBUG is not set
 CONFIG_DYNAMIC_FSYNC=y
 CONFIG_FRANDOM=y
-CONFIG_ENABLE_FULL_BY_SOC=n

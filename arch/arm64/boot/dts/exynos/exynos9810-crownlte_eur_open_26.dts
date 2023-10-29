@@ -13723,6 +13723,7 @@
 		battery,swelling_wc_low_temp_current = <0x3b6>;
 		battery,swelling_drop_float_voltage = <0x1036>;
 		battery,swelling_high_rechg_voltage = <0xfa0>;
+		battery,swelling_low_rechg_thr = <0x96>;
 		battery,swelling_low_rechg_voltage = <0xfa0>;
 		battery,wa_float_voltage = <0xfd2>;
 		battery,siop_event_check_type = <0x1>;
